@@ -1,5 +1,5 @@
 import models.ElevatorStatus.{Down, Idle, Up}
-import models.{Elevator, ElevatorRequest, ElevatorSystem}
+import models.{Elevator, ElevatorRequest, NonAKKAElevator, NonAKKAElevatorControlSystem}
 import org.scalatestplus.play._
 
 /**
@@ -8,7 +8,7 @@ import org.scalatestplus.play._
 class ModelSpec extends PlaySpec {
 
   "Elevator" should {
-    val elevator: Elevator = new Elevator(0)
+    val elevator: NonAKKAElevator = new NonAKKAElevator(0)
 
     "be 0 upon initialization" in {
       elevator.currentFloor must equal(0)
@@ -79,17 +79,31 @@ class ModelSpec extends PlaySpec {
 
     "add a new Request" in {
       val request = ElevatorRequest(1, 1, false, 1)
-      ElevatorSystem.addRequest(req = request)
-      ElevatorSystem.requests.size must equal(1)
+      NonAKKAElevatorControlSystem.addRequest(req = request)
+      NonAKKAElevatorControlSystem.requests.size must equal(1)
     }
 
     "add a new Elevator" in {
-      ElevatorSystem.addElevator(new Elevator(0))
-      ElevatorSystem.elevators.size must equal(1)
+      NonAKKAElevatorControlSystem.addElevator(new NonAKKAElevator(0))
+      NonAKKAElevatorControlSystem.elevators.size must equal(1)
+    }
+
+    "modify an Elevator" in {
+      val elevator: Elevator = new NonAKKAElevator(_currentShaft = "random")
+      NonAKKAElevatorControlSystem.addElevator(elevator)
+      val anotherElevator: Elevator = new NonAKKAElevator(_currentShaft = "random")
+      anotherElevator.goTo(5)
+      anotherElevator.move //1
+      anotherElevator.move //2
+      anotherElevator.move //3
+      anotherElevator.move //4
+      NonAKKAElevatorControlSystem.update(anotherElevator)
+      NonAKKAElevatorControlSystem.elevators.length == 1
+      NonAKKAElevatorControlSystem.elevators.last.currentFloor must equal(4)
     }
 
     "perform a simulation" in {
-      ElevatorSystem.simulation
+      NonAKKAElevatorControlSystem.simulation
     }
   }
 

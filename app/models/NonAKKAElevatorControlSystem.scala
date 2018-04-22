@@ -6,32 +6,9 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.Try
 
-//models a request used by the elevator system
-case class ElevatorRequest(time: Long, floor: Int, up: Boolean, destination: Int)
-//possible elevator that can be used to fulfill the request
-case class ElevatorOption(elevator: Elevator, effort: Int, queue: Int)
-//provides the status of an elevator
-case class ElevatorFloor(elevator: Elevator, floor: Int, direction: ElevatorStatus.EnumVal)
-
-//1. Querying the state of the elevators (what floor are they on and where they are going)
-//2. receiving an update about the status of an elevator
-//3. receiving a pickup request
-//4. time-stepping the simulation.
-
-trait ElevatorControlSystem {
-  //1. Querying the state of the elevators (what floor are they on and where they are going)
-  def queryStatus: Seq[ElevatorFloor]
-
-  //3. receiving a pickup request
-  def pickupRequest(request: ElevatorRequest): Unit
-
-  //4. time-stepping the simulation.
-  def simulation: Unit
-}
-
-class ElevatorSystem extends ElevatorControlSystem {
-  var elevators: mutable.ListBuffer[Elevator] = new mutable.ListBuffer[Elevator] //current elevators list
-  var requests: mutable.ListBuffer[ElevatorRequest] = new mutable.ListBuffer[ElevatorRequest] //current queue of pending requests
+class NonAKKAElevatorControlSystem extends ElevatorControlSystem {
+  private var _elevators: mutable.ListBuffer[Elevator] = new mutable.ListBuffer[Elevator] //current elevators list
+  private var _requests: mutable.ListBuffer[ElevatorRequest] = new mutable.ListBuffer[ElevatorRequest] //current queue of pending requests
 
   /**
     * Requests a elevator
@@ -41,14 +18,32 @@ class ElevatorSystem extends ElevatorControlSystem {
   override def pickupRequest(request: ElevatorRequest): Unit = this.addRequest(request)
 
   /**
+    * Updates an elevator
+    *
+    * @param elevator
+    */
+  override def update(elevator: Elevator): Unit = {
+    val optionElevator: Option[Elevator] = this._elevators.find(_.currentShaft == elevator.currentShaft)
+    if (optionElevator.isDefined) {
+      this._elevators -= optionElevator.get
+      this.addElevator(elevator)
+    } else {
+      this.addElevator(elevator)
+    }
+  }
+
+  /**
     * Provides a list with the Elevator, the current floor and if it is going up or down
     *
     * @return
     */
   override def queryStatus: Seq[ElevatorFloor] =
-    this.elevators
+    this._elevators
       .map(e => ElevatorFloor(e, e.currentFloor, e.currentStatus))
 
+  /**
+    * Time Steping simulation
+    */
   override def simulation: Unit = {
     var now: Long = 0
     val r = scala.util.Random
@@ -57,7 +52,9 @@ class ElevatorSystem extends ElevatorControlSystem {
 
     //create elevators
     for (i <- 1 to numberOfElevators) {
-      this.addElevator(new Elevator(Enums.maxNumberOfFloors))
+      this.addElevator(
+        new NonAKKAElevator(_currentFloor = Enums.maxNumberOfFloors)
+      )
     }
 
     //create requests
@@ -72,8 +69,8 @@ class ElevatorSystem extends ElevatorControlSystem {
     }
 
     while (
-      this.requests.nonEmpty //we have pending requests
-        || this.elevators //or the elevators are still moving
+      this._requests.nonEmpty //we have pending requests
+        || this._elevators //or the elevators are still moving
         .map(_.nextFloors.nonEmpty)
         .reduce(_ || _)
     ) {
@@ -89,10 +86,10 @@ class ElevatorSystem extends ElevatorControlSystem {
     * advances 1 unit of time
     */
   def moveAll: Unit = {
-    this.elevators.foreach(_.move)
+    this._elevators.foreach(_.move)
     var unsatisfiedRequest: mutable.ListBuffer[ElevatorRequest] = new mutable.ListBuffer[ElevatorRequest]
     // iterates the current list of requests
-    this.requests.foreach(
+    this._requests.foreach(
       r => {
         // gets a list of possible elevators that can fulfill the request
         val options: mutable.ListBuffer[ElevatorOption] =
@@ -115,26 +112,8 @@ class ElevatorSystem extends ElevatorControlSystem {
         }
       }
     )
-    this.requests = unsatisfiedRequest
+    this._requests = unsatisfiedRequest
     System.out.println(s"This round unsatisfied requests : ${unsatisfiedRequest.length}")
-  }
-
-  /**
-    * Used to print the status of the Elevators and the queues
-    */
-  def printStatus: Unit = {
-    for (e <- this.elevators) {
-      System.out.println(s"Found E on floor: ${
-        e.currentFloor
-      } going ${
-        e.currentStatus
-      }")
-      System.out.println(s"Next floors are: ")
-      for (n <- e.nextFloors) {
-        System.out.print(s" $n ")
-      }
-      System.out.println("")
-    }
   }
 
   /**
@@ -143,8 +122,8 @@ class ElevatorSystem extends ElevatorControlSystem {
     * @param req
     * @return
     */
-  def addRequest(req: ElevatorRequest): Try[Unit] = Try {
-    this.requests += req
+  override def addRequest(req: ElevatorRequest): Try[Unit] = Try {
+    this._requests += req
   }
 
   /**
@@ -153,10 +132,27 @@ class ElevatorSystem extends ElevatorControlSystem {
     * @param elevator
     * @return
     */
-  def addElevator(elevator: Elevator): Try[Unit] = Try {
-    this.elevators += elevator
+  override def addElevator(elevator: Elevator): Try[Unit] = Try {
+    this._elevators += elevator
   }
 
+  /**
+    * Used to print the status of the Elevators and the queues
+    */
+  def printStatus: Unit = {
+    for (e <- this._elevators) {
+      System.out.println(s"Found E on floor: ${e.currentFloor} going ${e.currentStatus}")
+      System.out.println(s"Next floors are: ")
+      for (n <- e.nextFloors) {
+        System.out.print(s" $n ")
+      }
+      System.out.println("")
+    }
+  }
+
+  def elevators = this._elevators.clone()
+
+  def requests = this._requests.clone()
 
   /**
     * Provides a list of available elevators that can serve the requests
@@ -165,10 +161,10 @@ class ElevatorSystem extends ElevatorControlSystem {
     * @return
     */
   private def availableElevators(floor: Int): ListBuffer[ElevatorOption] =
-    this.elevators
+    this._elevators
       .map(e => ElevatorOption(e, e.effort(floor), e.nextFloors.size))
       .filter(e => e.effort >= 0)
 
 }
 
-object ElevatorSystem extends ElevatorSystem
+object NonAKKAElevatorControlSystem extends NonAKKAElevatorControlSystem
