@@ -1,7 +1,5 @@
 package models
 
-import scala.util.Try
-
 object ElevatorStatus {
 
   sealed trait EnumVal
@@ -15,6 +13,8 @@ object ElevatorStatus {
   val elevatorStatus = Seq(Idle, Up, Down)
 }
 
+// this trait could actually go, but since I started with it when I refactored to AKKA I prefered to let it be
+// probably is going to be replaced in the next iteration if its not needed
 trait Elevator {
   def currentFloor: Int
 
@@ -22,7 +22,7 @@ trait Elevator {
 
   def currentStatus: ElevatorStatus.EnumVal
 
-  def goTo(floor: Int): Try[Unit]
+  def goTo(floor: Int): Unit
 
   def effort(floor: Int): Int
 

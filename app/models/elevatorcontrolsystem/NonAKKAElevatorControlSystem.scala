@@ -1,5 +1,8 @@
-package models
+package models.elevatorcontrolsystem
 
+import models.ElevatorStatus.Idle
+import models._
+import models.elevator.NonAKKAElevator
 import models.utils.Enums
 
 import scala.collection.mutable
@@ -42,10 +45,10 @@ class NonAKKAElevatorControlSystem extends ElevatorControlSystem {
       .map(e => ElevatorFloor(e, e.currentFloor, e.currentStatus))
 
   /**
-    * Time Steping simulation
+    * Time Stepping simulation
     */
   override def simulation: Unit = {
-    var now: Long = 0
+    var now: Long = -1
     val r = scala.util.Random
     val numberOfElevators: Int = r.nextInt(Enums.maxElevators)
     val numberOfRequests: Int = r.nextInt(Enums.maxNumberOfRequests)
@@ -53,28 +56,38 @@ class NonAKKAElevatorControlSystem extends ElevatorControlSystem {
     //create elevators
     for (i <- 1 to numberOfElevators) {
       this.addElevator(
-        new NonAKKAElevator(_currentFloor = Enums.maxNumberOfFloors)
+        new NonAKKAElevator(initFloor = Enums.maxNumberOfFloors)
       )
     }
 
     //create requests
+    val buildRequests: mutable.ListBuffer[ElevatorRequest] = new mutable.ListBuffer[ElevatorRequest]
     for (i <- 1 to numberOfRequests) {
-      this.addRequest(
+      buildRequests += {
+        val currentFloor: Int = r.nextInt(Enums.maxNumberOfFloors)
+        val possibleDestination: Int = currentFloor + Math.abs(r.nextInt(Enums.maxNumberOfFloors))
+        val up: Boolean = r.nextBoolean()
+        var destination: Int = 0
+        if (up) destination = currentFloor + possibleDestination // will always give higher
+        else destination = currentFloor - possibleDestination // will always give lower
         ElevatorRequest(
-          r.nextInt(Enums.maxNumberOfTime),
-          r.nextInt(Enums.maxNumberOfFloors),
-          r.nextBoolean(),
-          r.nextInt(Enums.maxNumberOfFloors)
-        ))
+          Math.abs(r.nextInt(Enums.maxNumberOfTime)),
+          currentFloor,
+          up,
+          destination
+        )
+      }
     }
 
     while (
-      this._requests.nonEmpty //we have pending requests
-        || this._elevators //or the elevators are still moving
+      now < 101 || //we can have requests from 0 to 100
+      this._requests.nonEmpty // we have pending requests
+        || this._elevators // or the elevators are still moving
         .map(_.nextFloors.nonEmpty)
         .reduce(_ || _)
     ) {
       now += 1
+      this._requests.++=:(buildRequests.filter(_.time == now)) // only adds requests on determined time
       this.moveAll
       System.out.println(s"Current Time is t + $now")
       this.printStatus
@@ -141,12 +154,14 @@ class NonAKKAElevatorControlSystem extends ElevatorControlSystem {
     */
   def printStatus: Unit = {
     for (e <- this._elevators) {
-      System.out.println(s"Found E on floor: ${e.currentFloor} going ${e.currentStatus}")
-      System.out.println(s"Next floors are: ")
-      for (n <- e.nextFloors) {
-        System.out.print(s" $n ")
+      if (e.currentStatus != Idle) {
+        System.out.println(s"Found E on floor: ${e.currentFloor} going ${e.currentStatus}")
+        System.out.println(s"Next floors are: ")
+        for (n <- e.nextFloors) {
+          System.out.print(s" $n ")
+        }
+        System.out.println("")
       }
-      System.out.println("")
     }
   }
 

@@ -1,5 +1,7 @@
 import models.ElevatorStatus.{Down, Idle, Up}
-import models.{Elevator, ElevatorRequest, NonAKKAElevator, NonAKKAElevatorControlSystem}
+import models.elevator.NonAKKAElevator
+import models.elevatorcontrolsystem.NonAKKAElevatorControlSystem
+import models.{Elevator, ElevatorRequest}
 import org.scalatestplus.play._
 
 /**
@@ -89,9 +91,9 @@ class ModelSpec extends PlaySpec {
     }
 
     "modify an Elevator" in {
-      val elevator: Elevator = new NonAKKAElevator(_currentShaft = "random")
+      val elevator: Elevator = new NonAKKAElevator(initShaft = "random")
       NonAKKAElevatorControlSystem.addElevator(elevator)
-      val anotherElevator: Elevator = new NonAKKAElevator(_currentShaft = "random")
+      val anotherElevator: Elevator = new NonAKKAElevator(initShaft = "random")
       anotherElevator.goTo(5)
       anotherElevator.move //1
       anotherElevator.move //2
@@ -102,8 +104,24 @@ class ModelSpec extends PlaySpec {
       NonAKKAElevatorControlSystem.elevators.last.currentFloor must equal(4)
     }
 
-    "perform a simulation" in {
-      NonAKKAElevatorControlSystem.simulation
+    "perform 10 simulations" in {
+      for (i <- 1 to 10) {
+        System.out.println("Simulation Start")
+        System.out.println("Simulation Start")
+        System.out.println("Simulation Start")
+        System.out.println("Simulation Start")
+        System.out.println("Simulation Start")
+        System.out.println("Simulation Start")
+        System.out.println("Simulation Start")
+        NonAKKAElevatorControlSystem.simulation
+        System.out.println("Simulation End")
+        System.out.println("Simulation End")
+        System.out.println("Simulation End")
+        System.out.println("Simulation End")
+        System.out.println("Simulation End")
+        System.out.println("Simulation End")
+        System.out.println("Simulation End")
+      }
     }
   }
 
