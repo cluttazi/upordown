@@ -1,12 +1,29 @@
-build
-logs
-target
+# Build output
+build/
+target/
+project/target/
+project/project/
+.bsp/
+
+# Play runtime
+logs/
+/RUNNING_PID
+
+# IDE files
 /.idea
 /.idea_modules
 /.classpath
-/.gradle
 /.project
 /.settings
-/RUNNING_PID
 *.iml
+.vscode/
+
+# Gradle
+/.gradle
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local notes
 instructions.md
