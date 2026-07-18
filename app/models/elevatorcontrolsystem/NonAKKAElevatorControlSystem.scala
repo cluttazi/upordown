@@ -51,7 +51,9 @@ class NonAKKAElevatorControlSystem extends ElevatorControlSystem {
   override def simulation: Unit = {
     var now: Long = -1
     val r = scala.util.Random
-    val numberOfElevators: Int = r.nextInt(Enums.maxElevators)
+    // at least one elevator: with zero elevators the simulation would either
+    // never satisfy its requests (infinite loop) or crash on the empty check
+    val numberOfElevators: Int = r.nextInt(Enums.maxElevators) + 1
     val numberOfRequests: Int = r.nextInt(Enums.maxNumberOfRequests)
 
     //create elevators
@@ -84,8 +86,7 @@ class NonAKKAElevatorControlSystem extends ElevatorControlSystem {
       now < 101 || //we can have requests from 0 to 100
       this._requests.nonEmpty // we have pending requests
         || this._elevators // or the elevators are still moving
-        .map(_.nextFloors.nonEmpty)
-        .reduce(_ || _)
+        .exists(_.nextFloors.nonEmpty)
     ) {
       now += 1
       this._requests.++=:(buildRequests.filter(_.time == now)) // only adds requests on determined time
