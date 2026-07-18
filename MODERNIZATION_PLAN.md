@@ -98,4 +98,70 @@ prerequisite for running any tests at all.
 
 ## 7. Done vs Deferred
 
-To be filled in at the end of the modernization pass.
+### Done
+
+- **Toolchain**: sbt 1.1.2 → 1.11.7; Scala 2.12.4 → 2.13.18 (2.11
+  cross-build dropped); Play 2.6.13 → 3.0.11 (`org.playframework`, Apache
+  Pekko); obsolete snapshot resolver removed.
+- **Dependencies**: scalatestplus-play 3.1.2 → 7.0.2; unused H2 1.4.196
+  removed (known RCE CVEs, no datasource configured).
+- **Migration**: `akka.actor` → `org.apache.pekko.actor` (AsyncController,
+  UnitSpec); `akka {}` → `pekko {}` config block; deprecated static
+  `play.api.Logger` → instance logger (ApplicationTimer); `.toSeq` for
+  Scala 2.13 immutable-`Seq` in `queryStatus`; deprecated procedure syntax
+  fixed in `AbstractElevator`.
+- **Dead code removed**: legacy Gradle build (software-model `play` plugin,
+  Gradle 4.4 wrapper, jcenter) and Travis-era `scripts/`.
+- **Bug fix + regression test**: `simulation` on a fresh control system
+  could infinite-loop or crash when the RNG drew zero elevators; now always
+  creates ≥ 1 elevator and uses `exists` instead of `empty.reduce`. Seeded
+  regression test added; verified it hangs without the fix.
+- **Docs/config hygiene**: README matches reality (Play 3 / Scala 2.13 /
+  JDK 17+/21, no Gradle); `.gitignore` Gradle entries dropped;
+  `play.http.secret.key` overridable via `APPLICATION_SECRET`.
+- **CI**: JDK 8 → 21 (checkout@v4 / setup-java@v4 temurin / sbt cache /
+  sbt/setup-sbt@v1 already current); runs the locally verified `sbt test`.
+
+Test status: **before** — nothing runnable on Java 21 (sbt launcher crash);
+**after** — `sbt test`: 21/21 tests pass (20 original + 1 new regression
+test), including the HtmlUnit browser spec.
+
+### Deferred
+
+- Scala 3 migration (larger rewrite, no behavioral payoff here).
+- Implementing the `ElevatorActor` stub (feature work, not modernization).
+- Simulation realism: destinations can exceed the 120-floor bound /
+  go negative; `simulation`'s RNG is the unseeded global `scala.util.Random`
+  (non-reproducible runs); `NonAKKAElevatorControlSystem` singleton shares
+  mutable state across tests.
+- Twirl welcome/index pages are still the stock Play scaffold pages.
+
+## 8. Summary (PR-description style)
+
+**What changed**
+
+- Migrated the build from EOL Play 2.6 / Scala 2.12.4 / sbt 1.1.2 (unable
+  to even launch on the only available JDK, 21) to Play 3.0.11 /
+  Scala 2.13.18 / sbt 1.11.7, with the minimal source changes that requires
+  (Pekko imports, instance logger, `.toSeq`, `pekko` config block).
+- Removed the dead legacy Gradle build and Travis helper scripts; sbt is
+  the single build, as CI and README already assumed.
+- Dropped the unused H2 1.4.196 dependency (CVE-2021-42392 et al.).
+- Fixed a real hang/crash bug in `NonAKKAElevatorControlSystem.simulation`
+  (zero-elevator draw) with a seeded regression test.
+- README/.gitignore/CI brought in line with the above; app secret is now
+  overridable via `APPLICATION_SECRET`.
+
+**Risks**
+
+- Framework major-version jump (2.6 → 3.0): behavior of the Play runtime
+  (server is now Pekko HTTP based instead of Netty by default) could differ
+  at the edges; the full test suite (routes, controllers, browser smoke
+  test, simulation) passes.
+- `simulation` now guarantees ≥ 1 elevator per run — a deliberate,
+  documented behavior change on a previously broken path.
+
+**Untouched**
+
+- All public model/controller APIs, routes, views, scheduling logic, and
+  the `ElevatorActor` stub.
