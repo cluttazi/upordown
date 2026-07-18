@@ -43,6 +43,7 @@ class NonAKKAElevatorControlSystem extends ElevatorControlSystem {
   override def queryStatus: Seq[ElevatorFloor] =
     this._elevators
       .map(e => ElevatorFloor(e, e.currentFloor, e.currentStatus))
+      .toSeq
 
   /**
     * Time Stepping simulation
