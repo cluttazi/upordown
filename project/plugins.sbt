@@ -1,2 +1,2 @@
-// The Play plugin
-addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.6.13")
+// The Play plugin (Play 3.x = org.playframework, built on Apache Pekko)
+addSbtPlugin("org.playframework" % "sbt-plugin" % "3.0.11")

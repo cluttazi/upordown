@@ -104,6 +104,22 @@ class ModelSpec extends PlaySpec {
       NonAKKAElevatorControlSystem.elevators.last.currentFloor must equal(4)
     }
 
+    "terminate a simulation on a fresh system even when the RNG requests zero elevators" in {
+      // Regression test: simulation used to call r.nextInt(maxElevators),
+      // which can yield 0. On a fresh control system (no elevators carried
+      // over from earlier tests) that either looped forever (pending
+      // requests can never be served) or crashed with empty.reduce.
+      // Seed the global RNG so the first nextInt(maxElevators) draw is 0.
+      val seed: Long = (0L to 10000L)
+        .find(s => new scala.util.Random(s).nextInt(models.utils.Enums.maxElevators) == 0)
+        .get
+      scala.util.Random.setSeed(seed)
+      val freshSystem = new NonAKKAElevatorControlSystem
+      freshSystem.simulation
+      freshSystem.elevators must not be empty
+      freshSystem.requests mustBe empty
+    }
+
     "perform 10 simulations" in {
       for (i <- 1 to 10) {
         System.out.println("Simulation Start")

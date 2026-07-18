@@ -82,7 +82,7 @@ abstract class AbstractElevator(var _currentFloor: Int = 0,
     }
   }
 
-  protected def setStatus(status: ElevatorStatus.EnumVal)
+  protected def setStatus(status: ElevatorStatus.EnumVal): Unit
 
   //no status modification
   /**

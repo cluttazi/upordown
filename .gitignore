@@ -1,5 +1,4 @@
 # Build output
-build/
 target/
 project/target/
 project/project/
@@ -17,9 +16,6 @@ logs/
 /.settings
 *.iml
 .vscode/
-
-# Gradle
-/.gradle
 
 # OS files
 .DS_Store
